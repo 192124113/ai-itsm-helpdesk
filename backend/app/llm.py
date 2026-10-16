@@ -47,11 +47,16 @@ def generate(system: str, user: str, max_tokens: int = 400) -> str | None:
             with torch.no_grad():
                 out = _model.generate(
                     **inputs,
-                    max_new_tokens=min(max_tokens, 300),
+                    max_new_tokens=min(max_tokens, 150),
                     do_sample=False,
+                    use_cache=True,
                 )
             new_tokens = out[0][inputs["input_ids"].shape[1]:]
             return _tok.decode(new_tokens, skip_special_tokens=True).strip()
     except Exception as exc:  # noqa: BLE001
         log.warning("Local LLM failed (%s); using fallback", exc)
         return None
+def warmup() -> None:
+    """Load the model and run one tiny generation so the first real request is fast."""
+    generate("You are a helpful assistant.", "Say OK.", max_tokens=5)
+    log.info("LLM warm-up complete.")

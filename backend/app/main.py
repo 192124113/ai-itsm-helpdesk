@@ -1,12 +1,13 @@
 """FastAPI application. Interactive API docs: http://localhost:8000/docs"""
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import db, orchestrator, provisioning, store
+from . import db, llm, orchestrator, provisioning, store
 from .catalog import AUTOMATIONS, SOFTWARE_CATALOGUE
 from .config import settings
 from .rag import get_rag
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
     db.get_db()
     db.seed_users()
     get_rag()  # build the vector index once at start-up
+    threading.Thread(target=llm.warmup, daemon=True).start()  # preload the LLM in the background
     yield
 
 
